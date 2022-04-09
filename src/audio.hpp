@@ -1,8 +1,8 @@
 #pragma once
-
+#ifndef __clang_analyzer__
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
-
+#endif
 class Audio
 {
   // inout - initialized in constructor
