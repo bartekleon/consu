@@ -4,7 +4,8 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/canvas.hpp>
-#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <fmt/printf.h>
 
 #include <chrono>
 #include <thread>
@@ -43,7 +44,6 @@ class Game
   int mouse_y = 0;
   std::chrono::steady_clock::time_point clickpoint;
   std::size_t points = 0;
-  std::atomic<bool> refresh_ui_continue = true;
   Audio audio_player;
   std::string last_hit;
 
@@ -106,7 +106,6 @@ public:
   ftxui::Component songs_menu()
   {
     const std::filesystem::path sandbox{ "songs" };
-    std::vector<ftxui::Component> songs;
 
     inputs->DetachAllChildren();
 
@@ -264,8 +263,9 @@ public:
   Game() : render{ renderer() }
   {
     auto renderer = ftxui::Renderer(inputs, [&] { return render->Render(); });
-    
-    std::jthread refresh_ui([&] {
+    std::atomic<bool> refresh_ui_continue = true;
+
+    std::thread refresh_ui([&] {
       while (refresh_ui_continue) {
         std::this_thread::sleep_for(TIMING);
         screen.PostEvent(ftxui::Event::Custom);
@@ -273,6 +273,7 @@ public:
     });
     screen.Loop(renderer);
     refresh_ui_continue = false;
+    refresh_ui.join();
   }
 };
 
