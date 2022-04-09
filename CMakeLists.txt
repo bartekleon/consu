@@ -35,7 +35,8 @@ set(ENABLE_DEVELOPER_MODE
 
 # Change this to false if you want to disable warnings_as_errors in developer mode
 set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
-
+# There is an issue with `miniaudio library` causing sanitizer to throw errors
+set(OPT_ENABLE_SANITIZER_UNDEFINED_DEFAULT FALSE)
 # Add project_options v0.17.0
 # https://github.com/cpp-best-practices/project_options
 FetchContent_Declare(_project_options
