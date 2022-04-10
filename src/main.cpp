@@ -67,19 +67,48 @@ private:
   {
     inputs->Add(ftxui::Button(std::string("Songs menu"), [&] { game_iteration(GameState::SongsMenu); }));
     inputs->Add(ftxui::Button(std::string("Create song"), [&] { game_iteration(GameState::CreateSongMetadata); }));
-    return ftxui::Renderer([&] { return ftxui::hbox({ ftxui::text("main menu"), inputs->Render() }); });
+
+    return ftxui::Renderer([&] {
+      return ftxui::vbox({
+        ftxui::hbox({
+          ftxui::filler(),
+          ftxui::vbox({
+            ftxui::text(R"(  _____ ____  _   _  _____ _    _)"),
+            ftxui::text(R"( / ____/ __ \| \ | |/ ____| |  | |)"),
+            ftxui::text(R"(| |   | |  | |  \| | (___ | |  | |)"),
+            ftxui::text(R"(| |   | |  | | . ` |\___ \| |  | |)"),
+            ftxui::text(R"(| |___| |__| | |\  |____) | |__| |)"),
+            ftxui::text(R"( \_____\____/|_| \_|_____/ \____/)")
+          }),
+          ftxui::filler()
+        }),
+        ftxui::text(" "),
+        ftxui::hbox({
+          ftxui::filler(),
+          ftxui::vbox({ inputs->Render() }),
+          ftxui::filler()
+        })
+      });
+    });
   }
   
   ftxui::Component songs_menu()
   {
-    for (auto const &dir_entry : std::filesystem::directory_iterator{ FILE_CONSTANTS::FOLDER_PATH }) {
+    const std::filesystem::path path{ FILE_CONSTANTS::FOLDER_PATH };
+    if (!std::filesystem::exists(path)) {
+        std::filesystem::create_directories(path);
+    }
+    for (auto const &dir_entry : std::filesystem::directory_iterator{ path }) {
       if (dir_entry.is_directory()) {
         const auto stem = dir_entry.path().stem().string();
         inputs->Add(ftxui::Button(stem, load_song(stem)));
       }
     }
 
-    return ftxui::Renderer([&] { return ftxui::hbox({ ftxui::text("songs_menu"), inputs->Render() }); });
+    return ftxui::Renderer([&] {
+      return ftxui::hbox({ ftxui::text("songs_menu"),
+        inputs->Render() | ftxui::vscroll_indicator | ftxui::frame | ftxui::border });
+    });
   }
   ftxui::Component play_game()
   {
