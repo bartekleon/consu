@@ -16,14 +16,19 @@ FetchContent_Declare(ftxui
   GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
   GIT_TAG v2.0.0
 )
-
+set(FTXUI_BUILD_DOCS OFF CACHE INTERNAL "")
 FetchContent_GetProperties(ftxui)
 if(NOT ftxui_POPULATED)
   FetchContent_Populate(ftxui)
   add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-
+FetchContent_Declare(smk GIT_REPOSITORY https://github.com/ArthurSonzogni/smk.git)
+FetchContent_GetProperties(smk)
+if(NOT smk_POPULATED)
+  FetchContent_Populate(smk)
+  add_subdirectory(${smk_SOURCE_DIR} ${smk_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 # Note: by default ENABLE_DEVELOPER_MODE is True
 # This means that all analysis (sanitizers, static analysis)
@@ -35,8 +40,6 @@ set(ENABLE_DEVELOPER_MODE
 
 # Change this to false if you want to disable warnings_as_errors in developer mode
 set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
-# There is an issue with `miniaudio library` causing sanitizer to throw errors
-set(OPT_ENABLE_SANITIZER_UNDEFINED_DEFAULT FALSE)
 # Add project_options v0.17.0
 # https://github.com/cpp-best-practices/project_options
 FetchContent_Declare(_project_options

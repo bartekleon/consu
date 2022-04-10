@@ -11,15 +11,13 @@
 #include <thread>
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
-#include <sstream>
 #include <string>
 
-#include "audio.hpp"
 #include "constants.hpp"
 #include "types.hpp"
 #include "utils.hpp"
-
+#include "audio.hpp"
+#include "song.hpp"
 
 class Game
 {
@@ -40,79 +38,44 @@ class Game
   Song song;
   std::size_t note_no = 0;
   std::chrono::steady_clock::time_point timepoint;
-  int mouse_x = 0;
-  int mouse_y = 0;
-  std::chrono::steady_clock::time_point clickpoint;
   std::size_t points = 0;
-  Audio audio_player;
   std::string last_hit;
 
   ftxui::Component inputs = ftxui::Container::Vertical({});
   ftxui::Component render = ftxui::Container::Vertical({});
-
-public:
+  Audio audio_player;
+  
+private:
   std::function<void()> load_song(const std::string& s)
   {
     return [&, s] {
-      const std::string path = fmt::format("{}/{}/{}.{}", FILE_CONSTANTS::FOLDER_PATH, s, s, FILE_CONSTANTS::GAMEFILE_EXT);
-      std::ifstream file{ path };
-
-      song = {};
-      std::string line;
-      std::getline(file, line);
-      song.name = line;
-
-      while (std::getline(file, line)) {
-        if (line.empty()) { break; }
-        std::istringstream iss(line);
-        int x{};
-        int y{};
-        long long stamp{};
-        if (!(iss >> x >> y >> stamp)) { break; }// error
-
-        song.notes.push_back({ x, y, stamp });
-        // process pair (a,b)
-      }
-
+      song = load_song_from_disk(s);
       note_no = 0;
       points = 0;
-      mouse_x = -1;
-      mouse_y = -1;
       timepoint = std::chrono::steady_clock::now();
       game_iteration(GameState::Play);
     };
   }
-  auto initialize_song()
+  void initialize_song()
   {
-    const std::filesystem::path sandbox{ "songs/" + song.name };
-    std::filesystem::path p = "";
-    for (auto const &dir_entry : std::filesystem::directory_iterator{ sandbox }) {
-      if (dir_entry.is_regular_file() && dir_entry.path().extension() != ".consu") { p = dir_entry.path(); }
+    if (const std::string p = find_song(song); !p.empty()) {
+      audio_player.init_song(fmt::format("{}/{}/{}", FILE_CONSTANTS::FOLDER_PATH, song.name, p));
     }
-    if (p.empty()) {
-      return;
-    }
-    audio_player.init_song(p.string().c_str());
   }
 
   ftxui::Component main_menu()
   {
-    inputs->DetachAllChildren();
-    inputs->Add(ftxui::Button("Songs menu", [&] { game_iteration(GameState::SongsMenu); }));
-    inputs->Add(ftxui::Button("Create song", [&] { game_iteration(GameState::CreateSongMetadata); }));
+    inputs->Add(ftxui::Button(std::string("Songs menu"), [&] { game_iteration(GameState::SongsMenu); }));
+    inputs->Add(ftxui::Button(std::string("Create song"), [&] { game_iteration(GameState::CreateSongMetadata); }));
     return ftxui::Renderer([&] { return ftxui::hbox({ ftxui::text("main menu"), inputs->Render() }); });
   }
   
   ftxui::Component songs_menu()
   {
-    const std::filesystem::path sandbox{ "songs" };
-
-    inputs->DetachAllChildren();
-
-    for (auto const &dir_entry : std::filesystem::directory_iterator{ sandbox }) {
+    for (auto const &dir_entry : std::filesystem::directory_iterator{ FILE_CONSTANTS::FOLDER_PATH }) {
       if (dir_entry.is_directory()) {
-        inputs->Add(
-          ftxui::Button(dir_entry.path().stem().string(), load_song(dir_entry.path().stem().string())));
+        const auto stem = dir_entry.path().stem().string();
+        inputs->Add(ftxui::Button(stem, load_song(stem)));
       }
     }
 
@@ -120,18 +83,17 @@ public:
   }
   ftxui::Component play_game()
   {
-    inputs->DetachAllChildren();
     initialize_song();
 
     auto container = ftxui::Container::Horizontal({});
     auto event_handler = ftxui::CatchEvent(container, [&](ftxui::Event ev) {
       if (ev.mouse().button == ftxui::Mouse::Left && ev.mouse().motion == ftxui::Mouse::Pressed) {
         if (note_no + 1 != song.notes.size()) {
-          const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+          const auto now = std::chrono::steady_clock::now();
           const auto &note = song.notes.at(note_no);
           if (std::hypot(note.x - ev.mouse().x * CANVAS_CONSTANTS::RATIO_FIX[0], note.y - ev.mouse().y * CANVAS_CONSTANTS::RATIO_FIX[1]) < CANVAS_CONSTANTS::CURATED_DISTANCE) {
             const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now - timepoint).count();
-            const long long time_to_click = note.timestamp - timestamp;
+            const auto time_to_click = note.timestamp - timestamp;
             const auto [point, msg] = time_to_points(time_to_click);
             points += point;
             last_hit = msg;
@@ -146,11 +108,11 @@ public:
 
     return ftxui::Renderer([&] {
       ftxui::Canvas c = ftxui::Canvas(CANVAS_CONSTANTS::SIZE, CANVAS_CONSTANTS::SIZE);
-      const std::size_t last_note = std::min(note_no + CANVAS_CONSTANTS::NOTES_ON_SCREEN_LIMIT, song.notes.size());
-      const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+      const auto last_note = std::min(note_no + CANVAS_CONSTANTS::NOTES_ON_SCREEN_LIMIT, song.notes.size());
+      const auto now = std::chrono::steady_clock::now();
       const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now - timepoint).count();
-      for (std::size_t n = note_no; n < last_note; ++n) {
-        long long time_to_click = song.notes.at(n).timestamp - timestamp;
+      for (auto n = note_no; n < last_note; ++n) {
+        const auto time_to_click = song.notes.at(n).timestamp - timestamp;
         if (time_to_click > TIME_CONSTANTS::MAX_TIME_DISPLAY_NOTE) { break; }
         if (time_to_click < 0) {
           if (note_no + 1 != song.notes.size()) {
@@ -162,7 +124,7 @@ public:
         }
       }
 
-      const std::string res = "points: " + std::to_string(points) + " / " + last_hit;
+      const std::string res = fmt::format("points: {} / {}", points, last_hit);
       return ftxui::hbox({ ftxui::canvas(std::move(c)) | ftxui::border, ftxui::text(res) });
     });
   }
@@ -171,18 +133,16 @@ public:
   {
     song = Song{};
 
-    inputs->DetachAllChildren();
     inputs->Add(ftxui::Input(&song.name, "song name"));
-    inputs->Add(ftxui::Button("Create song", [&] { game_iteration(GameState::CreateSongMetadata2); }));
+    inputs->Add(ftxui::Button(std::string("Create song"), [&] { game_iteration(GameState::CreateSongMetadata2); }));
 
     return ftxui::Renderer([&] { return ftxui::hbox({ ftxui::text("metadata"), inputs->Render() }); });
   }
   ftxui::Component create_song_metadata2()
   {
-    std::filesystem::create_directories("songs/" + song.name);
+    std::filesystem::create_directories(generate_folder_path(song.name));
 
-    inputs->DetachAllChildren();
-    inputs->Add(ftxui::Button("Create song", [&] { game_iteration(GameState::CreateSongData); }));
+    inputs->Add(ftxui::Button(std::string("Create song"), [&] { game_iteration(GameState::CreateSongData); }));
 
     return ftxui::Renderer([&] {
       return ftxui::hbox(
@@ -194,7 +154,6 @@ public:
   {
     initialize_song();
     timepoint = std::chrono::steady_clock::now();
-    inputs->DetachAllChildren();
 
     auto container = ftxui::Container::Vertical({});
     auto event_handler = ftxui::CatchEvent(container, [&](ftxui::Event ev) {
@@ -220,13 +179,9 @@ public:
   }
   ftxui::Component save_song()
   {
-    inputs->DetachAllChildren();
-    std::ofstream file{ "songs/" + song.name + "/" + song.name + ".consu" };
+    save_song_to_disk(song);
 
-    file << song.name << '\n';
-    for (const auto &note : song.notes) { file << note.x << ' ' << note.y << ' ' << note.timestamp << '\n'; }
-
-    inputs->Add(ftxui::Button("Back to menu", [&] { game_iteration(GameState::MainMenu); }));
+    inputs->Add(ftxui::Button(std::string("Back to menu"), [&] { game_iteration(GameState::MainMenu); }));
 
     return ftxui::Renderer(inputs, [&] { return ftxui::hbox({ ftxui::text("file saved"), inputs->Render() }); });
   }
@@ -256,13 +211,15 @@ public:
   {
     if (state != new_state) {
       state = new_state;
+      inputs->DetachAllChildren();
       render = renderer();
     }
   }
 
+public:
   Game() : render{ renderer() }
   {
-    auto renderer = ftxui::Renderer(inputs, [&] { return render->Render(); });
+    auto r = ftxui::Renderer(inputs, [&] { return render->Render(); });
     std::atomic<bool> refresh_ui_continue = true;
 
     std::thread refresh_ui([&] {
@@ -271,7 +228,7 @@ public:
         screen.PostEvent(ftxui::Event::Custom);
       }
     });
-    screen.Loop(renderer);
+    screen.Loop(r);
     refresh_ui_continue = false;
     refresh_ui.join();
   }

@@ -39,5 +39,5 @@ struct CANVAS_CONSTANTS
 struct FILE_CONSTANTS
 {
   static constexpr char FOLDER_PATH[] = "songs";
-  static constexpr char GAMEFILE_EXT[] = "consu";
+  static constexpr char GAMEFILE_EXT[] = ".consu";
 };
