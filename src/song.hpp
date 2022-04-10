@@ -42,8 +42,12 @@ Song load_song_from_disk(const std::string &file_name)
 
 std::string find_song(const Song& song)
 {
+  const auto is_music_file = [](const std::filesystem::directory_entry &dir_entry) {
+    return dir_entry.is_regular_file() && dir_entry.path().extension() != FILE_CONSTANTS::GAMEFILE_EXT;
+  };
+
   for (auto const &dir_entry : std::filesystem::directory_iterator{ generate_folder_path(song.name) }) {
-    if (dir_entry.is_regular_file() && dir_entry.path().extension() != FILE_CONSTANTS::GAMEFILE_EXT) {
+    if (is_music_file(dir_entry)) {
       return dir_entry.path().filename().string();
     }
   }
