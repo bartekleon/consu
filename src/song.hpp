@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <vector>
+#include <string>
 
 #include "types.hpp"
 #include "utils.hpp"
@@ -52,4 +54,16 @@ std::string find_song(const Song& song)
     }
   }
   return std::string{};
+}
+
+std::vector<std::string> get_songs_list()
+{
+  std::vector<std::string> stems;
+  const std::filesystem::path path{ FILE_CONSTANTS::FOLDER_PATH };
+  if (!std::filesystem::exists(path)) { std::filesystem::create_directories(path); }
+  for (auto const &dir_entry : std::filesystem::directory_iterator{ path }) {
+    if (dir_entry.is_directory()) { stems.push_back(dir_entry.path().stem().string()); }
+  }
+
+  return stems;
 }

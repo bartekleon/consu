@@ -1,9 +1,8 @@
 find_package(fmt CONFIG)
 find_package(spdlog CONFIG)
-find_package(miniaudio CONFIG)
 
 # Generic test that uses conan libs
-add_executable(intro main.cpp "constants.hpp" "types.hpp" "utils.hpp" "audio.hpp" "song.hpp")
+add_executable(intro main.cpp "constants.hpp" "types.hpp" "utils.hpp" "audio.hpp" "song.hpp" "Game.hpp")
 target_link_libraries(
   intro
   PRIVATE project_options

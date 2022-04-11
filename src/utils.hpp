@@ -6,12 +6,15 @@
 #include "constants.hpp"
 
 
-static constexpr ftxui::Color::Palette16 time_to_color(const long long time_ms) noexcept
+static constexpr ftxui::Color::Palette256 time_to_color(const long long time_ms) noexcept
 {
-  if (time_ms > TIME_CONSTANTS::DISPLAY_NOTE_COLOR_3) { return ftxui::Color::Blue; }
-  if (time_ms > TIME_CONSTANTS::DISPLAY_NOTE_COLOR_2) { return ftxui::Color::Green; }
-  if (time_ms > TIME_CONSTANTS::DISPLAY_NOTE_COLOR_1) { return ftxui::Color::Yellow; }
-  return ftxui::Color::Red;
+  if (time_ms > TIME_CONSTANTS::MAX_TIME_DISPLAY_NOTE) { return ftxui::Color::Blue1; }
+  if (time_ms > TIME_CONSTANTS::TIME_PREP) { return ftxui::Color::Green1; }
+  if (time_ms > TIME_CONSTANTS::NOTE_MISS) { return ftxui::Color::Yellow1; }
+  if (time_ms > TIME_CONSTANTS::NOTE_OK) { return ftxui::Color::DarkOrange; }
+  if (time_ms > TIME_CONSTANTS::NOTE_NICE) { return ftxui::Color::OrangeRed1; }
+  if (time_ms > TIME_CONSTANTS::NOTE_GOOD) { return ftxui::Color::Red3; }
+  return ftxui::Color::Red1;
 }
 
 static Points time_to_points(const long long time_ms) noexcept
