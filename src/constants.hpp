@@ -33,7 +33,7 @@ struct CANVAS_CONSTANTS
   static constexpr std::size_t SIZE = 150;
   static constexpr int CIRCLE_DIAMETER = 10;
   static constexpr std::size_t NOTES_ON_SCREEN_LIMIT = 6;
-  static constexpr std::array<std::size_t, 2> RATIO_FIX{ 2, 4 };
+  static constexpr std::array<int, 2> RATIO_FIX{ 2, 4 };
 };
 
 struct FILE_CONSTANTS
